@@ -1,0 +1,7 @@
+.env
+__pycache__/
+*.pyc
+package/
+*.zip
+.ipynb_checkpoints/
+.aws/
