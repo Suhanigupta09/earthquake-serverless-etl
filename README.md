@@ -2,15 +2,15 @@
 
 ## Project Overview
 
-This project implements a serverless ETL pipeline using Amazon S3, AWS Lambda, Amazon DynamoDB, GitHub Actions, AWS CodeBuild, and AWS CodePipeline.
+This project implements a serverless ETL pipeline using Amazon S3, AWS Lambda, Amazon DynamoDB, Amazon CloudWatch, GitHub Actions, AWS CodeBuild, and AWS CodePipeline.
 
-The pipeline processes earthquake data stored as a CSV file. Invalid records are rejected, valid records are cleaned and transformed, and the final records are stored in DynamoDB.
+The pipeline processes earthquake data stored in a CSV file. Invalid records are rejected, valid records are cleaned and transformed, and the final records are stored in DynamoDB.
 
 ## Dataset Source
 
-The project uses a sample earthquake dataset inspired by public earthquake datasets such as the USGS earthquake feed.
+This project uses a sample earthquake CSV dataset created for this assignment and inspired by public USGS earthquake datasets.
 
-The dataset contains:
+The dataset contains the following fields:
 
 * Earthquake ID
 * Place
@@ -22,11 +22,11 @@ The dataset contains:
 
 ## ETL Scenario
 
-The use case is to prepare clean earthquake records for analytics, monitoring, or alerting.
+The purpose of this project is to prepare clean earthquake records for analytics, monitoring, or alerting.
 
-Raw earthquake data is uploaded to the `raw/` prefix in Amazon S3. The upload automatically triggers an AWS Lambda function.
+The raw earthquake CSV file is uploaded to the `raw/` prefix in Amazon S3. The upload triggers an AWS Lambda function.
 
-The Lambda function reads the CSV file, validates and transforms the records, and stores clean data in Amazon DynamoDB.
+The Lambda function reads the file, validates the records, transforms the valid records, and stores the clean data in Amazon DynamoDB.
 
 ## Architecture
 
@@ -70,7 +70,7 @@ AWS Lambda Deployment
 * AWS CodeBuild
 * AWS CodePipeline
 
-## ETL Rules
+## ETL Process
 
 ### Extract
 
@@ -82,7 +82,7 @@ s3://suhani-earthquake-etl-2026/raw/sample_raw_data.csv
 
 ### Transform
 
-The Lambda function applies the following rules:
+The Lambda function applies the following transformation rules:
 
 1. Removes records with a missing earthquake ID.
 2. Removes records with a missing place.
@@ -90,14 +90,13 @@ The Lambda function applies the following rules:
 4. Standardizes the place field using title case.
 5. Converts magnitude, depth, latitude, and longitude into numeric values.
 6. Adds a derived `severity` field.
+7. Adds a `processed_at` timestamp.
 
-Severity rules:
+### Severity Rules
 
-* Magnitude greater than or equal to 6: High
-* Magnitude greater than or equal to 4: Medium
-* Magnitude below 4: Low
-
-The function also adds a `processed_at` timestamp.
+* Magnitude greater than or equal to `6` → `High`
+* Magnitude greater than or equal to `4` → `Medium`
+* Magnitude below `4` → `Low`
 
 ### Load
 
@@ -111,8 +110,8 @@ clean_records
 
 * Table name: `clean_records`
 * Partition key: `record_id`
-* Partition key type: String
-* Capacity mode: On-demand
+* Partition key type: `String`
+* Capacity mode: `On-demand`
 
 The `record_id` field uniquely identifies each earthquake record.
 
@@ -127,13 +126,42 @@ The audit summary includes:
 * Rejected records
 * Processing timestamp
 
-Test result:
+### Test Result
 
 ```text
 Total input records: 6
 Inserted records: 4
 Rejected records: 2
 ```
+
+The following records were inserted:
+
+```text
+eq001
+eq002
+eq003
+eq006
+```
+
+The following records were rejected:
+
+```text
+eq004 - Negative magnitude
+eq005 - Missing place
+```
+
+## S3 Trigger
+
+An S3 trigger is connected to the Lambda function.
+
+Trigger settings:
+
+* Bucket: `suhani-earthquake-etl-2026`
+* Prefix: `raw/`
+* Suffix: `.csv`
+* Event type: `All object create events`
+
+Whenever a CSV file is uploaded to the `raw/` prefix, the Lambda function runs automatically.
 
 ## Testing Steps
 
@@ -153,7 +181,7 @@ It performs the following steps:
 1. Checks out the repository.
 2. Sets up Python 3.11.
 3. Installs dependencies from `requirements.txt`.
-4. Validates the Lambda Python syntax using:
+4. Validates the Lambda syntax using:
 
 ```bash
 python -m py_compile lambda_function.py
@@ -161,7 +189,7 @@ python -m py_compile lambda_function.py
 
 ## AWS CodePipeline
 
-The AWS CodePipeline contains these stages:
+The AWS CodePipeline contains the following stages:
 
 ```text
 Source → Build → Deploy
@@ -169,19 +197,29 @@ Source → Build → Deploy
 
 ### Source Stage
 
-The Source stage reads the project from the GitHub repository and the `main` branch.
+The Source stage reads the project from:
+
+```text
+Suhanigupta09/earthquake-serverless-etl
+```
+
+Branch:
+
+```text
+main
+```
 
 ### Build Stage
 
 AWS CodeBuild uses `buildspec.yml` to:
 
-* Install Python dependencies
-* Validate Lambda syntax
-* Generate the build artifact
+* Install dependencies
+* Validate the Lambda syntax
+* Create the build artifact
 
 ### Deploy Stage
 
-The Deploy stage updates the existing AWS Lambda function:
+The Deploy stage updates the existing Lambda function:
 
 ```text
 earthquake-etl-function
@@ -195,9 +233,18 @@ earthquake-serverless-etl/
 ├── .github/
 │   └── workflows/
 │       └── ci.yml
+│
 ├── sample_data/
 │   └── sample_raw_data.csv
+│
 ├── screenshots/
+│   ├── 01_s3_raw_file_upload.png
+│   ├── 02_lambda_execution_success.png
+│   ├── 03_dynamodb_clean_records.png
+│   ├── 04_cloudwatch_audit_logs.png
+│   ├── 05_github_actions_success.png
+│   └── 06_codepipeline_success.png
+│
 ├── .gitignore
 ├── README.md
 ├── buildspec.yml
@@ -207,21 +254,39 @@ earthquake-serverless-etl/
 
 ## Security
 
-The project does not store AWS access keys, secret keys, `.env` files, credentials, zip files, or generated package folders in GitHub.
+The project does not store:
+
+* AWS access keys
+* AWS secret keys
+* Credentials
+* `.env` files
+* ZIP packages
+* Generated dependency folders
 
 The S3 bucket blocks public access.
 
-IAM permissions are attached to the Lambda execution role to allow S3 reading, DynamoDB writing, and CloudWatch logging.
+For this beginner project, the following AWS-managed policies were used:
+
+```text
+AmazonS3ReadOnlyAccess
+AmazonDynamoDBFullAccess
+AWSLambdaBasicExecutionRole
+```
+
+In a production project, these should be replaced with a least-privilege custom IAM policy.
 
 ## Final Result
 
-The project successfully demonstrates a working serverless ETL pipeline with:
+This project successfully demonstrates:
 
 * Raw earthquake data stored in Amazon S3
-* Automatic Lambda processing
+* Automatic processing using AWS Lambda
 * Invalid record removal
-* Clean DynamoDB records
-* CloudWatch audit logs
+* Field standardization
+* Derived severity field creation
+* Clean records stored in DynamoDB
+* Audit logs stored in CloudWatch
 * GitHub version control
 * Successful GitHub Actions validation
-* Successful AWS CodePipeline build and Lambda deployment
+* Successful AWS CodeBuild execution
+* Successful AWS CodePipeline deployment
