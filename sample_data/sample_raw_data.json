@@ -1,0 +1,29 @@
+[
+  {
+    "id": "eq007",
+    "place": "turkey",
+    "magnitude": 5.4,
+    "depth": 18.2,
+    "event_time": "2026-06-26T10:20:00Z",
+    "latitude": 38.9637,
+    "longitude": 35.2433
+  },
+  {
+    "id": "eq008",
+    "place": "chile",
+    "magnitude": 6.5,
+    "depth": 32.4,
+    "event_time": "2026-06-27T15:40:00Z",
+    "latitude": -35.6751,
+    "longitude": -71.543
+  },
+  {
+    "id": "eq009",
+    "place": "",
+    "magnitude": 4.1,
+    "depth": 10.5,
+    "event_time": "2026-06-28T09:15:00Z",
+    "latitude": 20.5937,
+    "longitude": 78.9629
+  }
+]

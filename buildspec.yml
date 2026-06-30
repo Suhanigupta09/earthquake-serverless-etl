@@ -5,9 +5,15 @@ phases:
     commands:
       - pip install -r requirements.txt || true
       - python -m py_compile lambda_function.py
-      - echo "Build completed"
+      - python -m py_compile router_lambda.py
+      - python -m py_compile csv_processor.py
+      - python -m py_compile json_processor.py
+      - echo "All Lambda files validated successfully"
 
 artifacts:
   files:
     - lambda_function.py
+    - router_lambda.py
+    - csv_processor.py
+    - json_processor.py
     - requirements.txt

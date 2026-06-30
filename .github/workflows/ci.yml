@@ -20,5 +20,9 @@ jobs:
       - name: Install dependencies
         run: pip install -r requirements.txt || true
 
-      - name: Validate Lambda syntax
-        run: python -m py_compile lambda_function.py
+      - name: Validate all Lambda files
+        run: |
+          python -m py_compile lambda_function.py
+          python -m py_compile router_lambda.py
+          python -m py_compile csv_processor.py
+          python -m py_compile json_processor.py
